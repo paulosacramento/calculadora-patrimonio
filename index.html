@@ -203,7 +203,7 @@
                 <li><span class="font-bold">Crescimento Anual em Valor:</span> <span id="crescimentoValor" class="font-extrabold text-purple-900"></span></li>
                 <li><span class="font-bold">Crescimento Anual em %:</span> <span id="crescimentoPercentual" class="font-extrabold text-purple-900"></span></li>
             </ul>
-            <p class="mt-4 text-sm text-gray-600">Este cálculo reflete o valor total do seu patrimonio para o próximo ano, somando o patrimonio inicial com o total de dividendos, subtraindo os dividendos de FIIs e subtraindo o valor de aporte em FIIs sugerido para a inflação. Esta abordagem permite visualizar o crescimento considerando a realocação de capital e a manutenção do poder de compra.</p>
+            <p class="mt-4 text-sm text-gray-600">Este cálculo reflete o valor total do seu patrimonio para o próximo ano, somando o patrimonio inicial com o total de dividendos, subtraindo o valor de aporte em FIIs sugerido para a correção da inflação. Esta abordagem permite visualizar o crescimento considerando a realocação de capital e a manutenção do poder de compra.</p>
         </div>
         
         <hr class="my-8 border-t-2 border-gray-200">
@@ -707,8 +707,8 @@
                     return;
                 }
 
-                const retornoRealDecimal = ((1 + taxaRetorno / 100) / (1 + inflacaoAnual / 100)) - 1;
-                const retornoRealPercentual = retornoRealDecimal * 100;
+                const retornoRealDecimal = ((taxaRetorno) - (inflacaoAnual));
+                const retornoRealPercentual = retornoRealDecimal;
                 const aporteFiiInflacao = valorFii * (inflacaoAnual / 100);
                 sessionStorage.setItem('aporteFiiInflacao', aporteFiiInflacao);
 
@@ -724,8 +724,8 @@
                 retornoRealExplicacaoP.textContent = `Seu poder de compra está ${retornoRealPercentual > 0 ? 'aumentando' : 'diminuindo'}.`;
                 
                 const fiiDividendoPercentual = parseFloat(document.getElementById('fiiDividendoPercentual').value);
-                const dividendoMensalFiiAtual = (valorFii * fiiDividendoPercentual / 100) / 12;
-                const novoDividendoMensal = dividendoMensalFiiAtual * (1 + (inflacaoAnual / 100));
+               // const dividendoMensalFiiAtual = (valorFii * fiiDividendoPercentual / 100) / 12;
+                const novoDividendoMensal = aporteFiiInflacao/12;
                 
                 aporteFiiInflacaoSpan.textContent = `${formatter.format(aporteFiiInflacao)} (${formatter.format(novoDividendoMensal)} mensais)`;
                 aporteFiiExplicacaoP.textContent = `Aporte para manter o poder de compra.`;
@@ -744,7 +744,7 @@
 
                 if (isNaN(patrimonioTotal) || isNaN(totalDividendoAnual) || isNaN(fiiDividendoAnual) || isNaN(aporteFiiInflacao)) return;
                 
-                const crescimentoLiquido = totalDividendoAnual - fiiDividendoAnual - aporteFiiInflacao;
+                const crescimentoLiquido = totalDividendoAnual - aporteFiiInflacao;
                 const novoPatrimonio = patrimonioTotal + crescimentoLiquido;
                 const crescimentoPercentual = (crescimentoLiquido / patrimonioTotal) * 100;
                 
