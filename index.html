@@ -57,7 +57,7 @@
             
             <div id="resultadoPatrimonio" class="mt-6 pt-6 border-t border-gray-100 text-center hidden">
                 <p class="text-gray-500 font-medium uppercase text-xs tracking-wider">Patrimônio Total Necessário</p>
-                <p id="valorPatrimonio" class="text-4xl font-extrabold text-slate-900 mt-2"></p>
+                <p id="valorPatrimonio" class="text-2xl font-extrabold text-slate-900 mt-2"></p>
             </div>
         </div>
 
@@ -76,10 +76,17 @@
                         <div class="w-24"><label class="text-sm font-bold text-slate-700">Ações (%)</label><input type="number" id="acoesPercentual" value="30" class="w-full p-2 border rounded mt-1 text-center"></div>
                         <div class="flex-1 bg-gray-50 p-2 rounded flex justify-between items-center"><span class="text-sm text-gray-600">Alocado:</span><span id="acoesValor" class="font-bold text-slate-800">R$ 0,00</span></div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <div class="w-24"><label class="text-sm font-bold text-slate-700">R. Fixa (%)</label><input type="number" id="rendaFixaPercentual" value="20" class="w-full p-2 border rounded mt-1 text-center"></div>
-                        <div class="flex-1 bg-gray-50 p-2 rounded flex justify-between items-center"><span class="text-sm text-gray-600">Alocado:</span><span id="rendaFixaValor" class="font-bold text-slate-800">R$ 0,00</span></div>
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-4">
+                            <div class="w-24">
+                                <label id="lblRendaFixa" class="text-sm font-bold text-slate-700 transition-colors">R. Fixa (%)</label>
+                                <input type="number" id="rendaFixaPercentual" value="20" class="w-full p-2 border rounded mt-1 text-center">
+                            </div>
+                            <div class="flex-1 bg-gray-50 p-2 rounded flex justify-between items-center"><span class="text-sm text-gray-600">Alocado:</span><span id="rendaFixaValor" class="font-bold text-slate-800">R$ 0,00</span></div>
+                        </div>
+                        <span id="msgErroRendaFixa" class="text-[10px] text-red-600 font-bold hidden pl-1">⚠️ Soma > 100%! Ajuste os valores.</span>
                     </div>
+
                     <div class="flex items-center gap-4">
                         <div class="w-24"><label class="text-sm font-bold text-slate-700">Exter. (%)</label><input type="number" id="internacionalPercentual" class="w-full p-2 border bg-gray-100 rounded mt-1 text-center font-bold text-gray-500" readonly></div>
                         <div class="flex-1 bg-gray-50 p-2 rounded flex justify-between items-center"><span class="text-sm text-gray-600">Alocado:</span><span id="internacionalValor" class="font-bold text-slate-800">R$ 0,00</span></div>
@@ -212,39 +219,26 @@
     </div>
 
     <script>
-        // --- GERENCIAMENTO DE DADOS LOCAIS (LocalStorage) ---
         function saveLocalData() {
             const inputs = document.querySelectorAll('input');
             const data = {};
-            inputs.forEach(input => {
-                data[input.id] = input.value;
-            });
+            inputs.forEach(input => { data[input.id] = input.value; });
             localStorage.setItem('userFinancialData', JSON.stringify(data));
-            
-            // Feedback Visual ABAIXO do Botão
             const msgDiv = document.getElementById('saveMessage');
             msgDiv.classList.remove('hidden');
-            
-            // Remove após 5 segundos
-            setTimeout(() => {
-                msgDiv.classList.add('hidden');
-            }, 5000);
+            setTimeout(() => { msgDiv.classList.add('hidden'); }, 5000);
         }
 
         function loadLocalData() {
             const saved = localStorage.getItem('userFinancialData');
             if (saved) {
                 const data = JSON.parse(saved);
-                Object.keys(data).forEach(key => {
-                    const el = document.getElementById(key);
-                    if (el) el.value = data[key];
-                });
+                Object.keys(data).forEach(key => { const el = document.getElementById(key); if (el) el.value = data[key]; });
                 return true;
             }
             return false;
         }
 
-        // --- LÓGICA DA CALCULADORA ---
         let chartGrowth = null;
         let chartAlloc = null;
 
@@ -275,7 +269,24 @@
                 const fiiP = parseFloat(document.getElementById('fiiPercentual').value) || 0;
                 const acoesP = parseFloat(document.getElementById('acoesPercentual').value) || 0;
                 const rendaP = parseFloat(document.getElementById('rendaFixaPercentual').value) || 0;
-                const interP = Math.max(0, 100 - (fiiP + acoesP + rendaP));
+                
+                // --- VALIDAÇÃO DA SOMA 100% ---
+                const manualSum = fiiP + acoesP + rendaP;
+                const lblRf = document.getElementById('lblRendaFixa');
+                const msgErr = document.getElementById('msgErroRendaFixa');
+
+                if (manualSum > 100) {
+                    lblRf.classList.remove('text-slate-700');
+                    lblRf.classList.add('text-red-600');
+                    msgErr.classList.remove('hidden');
+                } else {
+                    lblRf.classList.add('text-slate-700');
+                    lblRf.classList.remove('text-red-600');
+                    msgErr.classList.add('hidden');
+                }
+
+                // Calcula o restante para internacional (trava em 0 se exceder)
+                const interP = Math.max(0, 100 - manualSum);
                 document.getElementById('internacionalPercentual').value = interP.toFixed(2);
 
                 const vals = { fii: total*(fiiP/100), acoes: total*(acoesP/100), renda: total*(rendaP/100), inter: total*(interP/100) };
@@ -329,7 +340,6 @@
                 const totalAnual = Object.values(divs).reduce((a,b) => a+b, 0);
                 const totalMensal = totalAnual / 12;
                 
-                // Saving Details for PDF
                 const detalheDividendos = {
                     fii: { val: divs.fii, share: totalAnual ? (divs.fii/totalAnual)*100 : 0, yield: ys.fii*100 },
                     acoes: { val: divs.acoes, share: totalAnual ? (divs.acoes/totalAnual)*100 : 0, yield: ys.acoes*100 },
@@ -508,7 +518,7 @@
             const textoObj = `Considerando a meta da renda mensal de ${fmt.format(rMensal)} para corresponder a ${perc}% do total do Patrimônio, conseguimos estimar a Meta Salarial Mensal de ${fmt.format(rMensal)} que corresponderá a uma Meta Patrimonial de ${patTotal}.`;
             addPara(textoObj);
 
-            // 3. ESTRUTURA (LAYOUT DUAS COLUNAS)
+            // 3. ESTRUTURA
             addTitle("3. ESTRUTURA DE CAPITAL");
             const pFii = document.getElementById('fiiPercentual').value;
             const pAcao = document.getElementById('acoesPercentual').value;
